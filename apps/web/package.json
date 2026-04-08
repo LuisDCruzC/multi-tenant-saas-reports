@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@saas/db": "file:../../packages/db",
     "react": "^18",
     "react-dom": "^18",
     "next": "14.2.5"

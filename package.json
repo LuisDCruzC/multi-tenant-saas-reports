@@ -9,10 +9,12 @@
   "scripts": {
     "dev:web": "npm run dev --workspace web",
     "dev:worker": "npm run dev --workspace @saas/worker",
-    "build": "npm run build --workspace web && npm run build --workspace @saas/worker",
-    "lint": "npm run lint --workspace web && npm run lint --workspace @saas/worker",
+    "db:generate": "npm run generate --workspace @saas/db",
+    "db:migrate": "npm run migrate:dev --workspace @saas/db",
+    "build": "npm run build --workspace @saas/db && npm run build --workspace web && npm run build --workspace @saas/worker",
+    "lint": "npm run lint --workspace web && npm run lint --workspace @saas/worker && npm run lint --workspace @saas/db",
     "test": "npm run test --workspace @saas/worker",
-    "typecheck": "npm run typecheck --workspace web && npm run typecheck --workspace @saas/worker"
+    "typecheck": "npm run typecheck --workspace web && npm run typecheck --workspace @saas/worker && npm run typecheck --workspace @saas/db"
   },
   "keywords": [],
   "author": "",
