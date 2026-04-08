@@ -13,6 +13,7 @@ apps/worker/dist
 packages/db/dist
 packages/queue/dist
 coverage
+artifacts/
 
 # Misc
 .DS_Store

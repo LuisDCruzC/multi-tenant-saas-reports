@@ -15,10 +15,15 @@
   "dependencies": {
     "@saas/queue": "file:../../packages/queue",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "nodemailer": "^8.0.5",
+    "pdfkit": "^0.15.0",
     "pino": "^9.4.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/pdfkit": "^0.13.7",
+    "@types/nodemailer": "^6.4.16",
     "@types/node": "^20.14.12",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4",

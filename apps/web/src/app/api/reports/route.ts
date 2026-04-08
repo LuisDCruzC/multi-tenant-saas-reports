@@ -26,6 +26,7 @@ export async function GET() {
       select: {
         id: true,
         title: true,
+        format: true,
         status: true,
         outputUrl: true,
         createdAt: true,
@@ -67,12 +68,14 @@ export async function POST(request: NextRequest) {
       data: {
         tenantId: session.tenantId,
         title,
+        format: format === "pdf" ? "PDF" : "XLSX",
         status: "QUEUED",
         createdByUserId: session.userId,
       },
       select: {
         id: true,
         title: true,
+        format: true,
         status: true,
         createdAt: true,
       },

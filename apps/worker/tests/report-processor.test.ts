@@ -2,14 +2,20 @@ import { describe, expect, it, vi } from "vitest";
 import { processReportJob } from "../src/report-processor.js";
 
 describe("processReportJob", () => {
-  it("marca el reporte como completed y guarda outputUrl", async () => {
+  it("marca el reporte como completed y guarda outputUrl/outputPath", async () => {
     const updateMany = vi
       .fn()
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 1 });
+    const findUnique = vi.fn().mockResolvedValue({
+      createdByUser: {
+        email: null,
+      },
+    });
     const prismaClient = {
       report: {
         updateMany,
+        findUnique,
       },
     };
 
@@ -21,7 +27,10 @@ describe("processReportJob", () => {
       },
       {
         prismaClient: prismaClient as never,
-        generateArtifact: async () => "/tmp/reports/report-1.pdf",
+        generateArtifact: async () => ({
+          filePath: "/tmp/reports/report-1.pdf",
+          outputUrl: "/api/reports/report-1/download",
+        }),
         logger: {
           info: vi.fn(),
           warn: vi.fn(),
@@ -32,7 +41,8 @@ describe("processReportJob", () => {
 
     expect(result).toEqual({
       status: "completed",
-      outputUrl: "/tmp/reports/report-1.pdf",
+      outputUrl: "/api/reports/report-1/download",
+      outputPath: "/tmp/reports/report-1.pdf",
     });
     expect(updateMany).toHaveBeenNthCalledWith(1, {
       where: {
@@ -53,9 +63,11 @@ describe("processReportJob", () => {
       },
       data: {
         status: "COMPLETED",
-        outputUrl: "/tmp/reports/report-1.pdf",
+        outputUrl: "/api/reports/report-1/download",
+        outputPath: "/tmp/reports/report-1.pdf",
       },
     });
+    expect(findUnique).toHaveBeenCalledTimes(1);
   });
 
   it("marca retrying cuando falla la generacion", async () => {

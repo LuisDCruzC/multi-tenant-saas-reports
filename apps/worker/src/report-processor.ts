@@ -1,10 +1,14 @@
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@saas/db";
 import type { GenerateReportJobData } from "./queue.js";
+import { generateReportArtifact } from "./report-artifact.js";
+import { sendReportEmail } from "./report-notifier.js";
 
 export type ReportProcessorDependencies = {
   prismaClient?: PrismaClient;
-  generateArtifact?: (job: GenerateReportJobData) => Promise<string>;
+  generateArtifact?: (
+    job: GenerateReportJobData,
+  ) => Promise<{ filePath: string; outputUrl: string }>;
   logger?: {
     info: (payload: unknown, message?: string) => void;
     warn: (payload: unknown, message?: string) => void;
@@ -18,18 +22,13 @@ const defaultLogger = {
   error: () => undefined,
 };
 
-async function defaultGenerateArtifact(job: GenerateReportJobData) {
-  const extension = job.format === "pdf" ? "pdf" : "xlsx";
-  return `/tmp/reports/${job.reportId}.${extension}`;
-}
-
 export async function processReportJob(
   job: GenerateReportJobData,
   dependencies: ReportProcessorDependencies = {},
 ) {
   const prismaClient = dependencies.prismaClient ?? prisma;
   const logger = dependencies.logger ?? defaultLogger;
-  const generateArtifact = dependencies.generateArtifact ?? defaultGenerateArtifact;
+  const generateArtifact = dependencies.generateArtifact ?? generateReportArtifact;
 
   logger.info(
     {
@@ -66,7 +65,7 @@ export async function processReportJob(
   }
 
   try {
-    const outputUrl = await generateArtifact(job);
+    const artifact = await generateArtifact(job);
 
     await prismaClient.report.updateMany({
       where: {
@@ -75,20 +74,46 @@ export async function processReportJob(
       },
       data: {
         status: "COMPLETED",
-        outputUrl,
+        outputUrl: artifact.outputUrl,
+        outputPath: artifact.filePath,
       },
     });
+
+    const owner = await prismaClient.report.findUnique({
+      where: { id: job.reportId },
+      select: {
+        createdByUser: {
+          select: {
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (owner?.createdByUser?.email) {
+      await sendReportEmail({
+        to: owner.createdByUser.email,
+        tenantId: job.tenantId,
+        reportId: job.reportId,
+        status: "COMPLETED",
+        outputUrl: artifact.outputUrl,
+      });
+    }
 
     logger.info(
       {
         tenantId: job.tenantId,
         reportId: job.reportId,
-        outputUrl,
+        outputUrl: artifact.outputUrl,
       },
       "Report job completed",
     );
 
-    return { status: "completed" as const, outputUrl };
+    return {
+      status: "completed" as const,
+      outputUrl: artifact.outputUrl,
+      outputPath: artifact.filePath,
+    };
   } catch (error) {
     await prismaClient.report.updateMany({
       where: {

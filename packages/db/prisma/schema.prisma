@@ -21,6 +21,11 @@ enum ReportStatus {
   RETRYING
 }
 
+enum ReportFormat {
+  PDF
+  XLSX
+}
+
 model User {
   id             String       @id @default(cuid())
   email          String       @unique
@@ -59,8 +64,10 @@ model Report {
   id              String       @id @default(cuid())
   tenantId        String
   title           String
+  format          ReportFormat @default(PDF)
   status          ReportStatus @default(QUEUED)
   outputUrl       String?
+  outputPath      String?
   createdByUserId String?
   createdByUser   User?        @relation("ReportCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
   tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
