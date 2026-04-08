@@ -284,6 +284,45 @@ npm audit
 # Output: 0 vulnerabilities
 ```
 
+## ☁️ AWS Deploy Low-Cost
+
+La ruta recomendada para AWS es una sola instancia EC2 con Docker Compose. Eso permite:
+
+- prender el stack cuando lo necesites,
+- apagar la instancia cuando no la uses,
+- pagar solo por el tiempo encendido y el disco EBS,
+- mantener web, worker, PostgreSQL y Redis juntos para simplificar operación.
+
+### Flujo operativo
+
+1. Crear una EC2 pequeña con Docker y Docker Compose.
+2. Clonar este repo en `/opt/multi-tenant-saas-reports`.
+3. Crear un `.env` en la instancia con las variables de producción.
+4. Levantar todo con:
+
+```bash
+docker compose -f docker-compose.aws.yml up -d --build
+```
+
+5. Apagar todo cuando no lo uses con:
+
+```bash
+docker compose -f docker-compose.aws.yml down
+```
+
+6. Apagar la instancia EC2 desde AWS Console o con el workflow manual.
+
+### Workflows incluidos
+
+- `.github/workflows/ci.yml`: validación en PR y push a main.
+- `.github/workflows/aws.yml`: start, stop y deploy manual sobre EC2.
+
+### Observabilidad mínima
+
+- Los servicios corren con logs a stdout/stderr, así que puedes verlos con `docker compose logs -f`.
+- El worker ya emite logs estructurados con `pino`.
+- Si quieres, el siguiente paso es sumar CloudWatch Logs y métricas básicas.
+
 ## 📈 Próximas Características
 
 - [ ] Gestión de usuarios (admin panel)

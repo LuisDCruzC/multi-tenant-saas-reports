@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "prebuild": "rm -rf dist",
+    "prebuild": "npm run build --workspace @saas/queue && npm run build --workspace @saas/db && rm -rf dist",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
-    "lint": "npm run build --workspace @saas/db && tsc --noEmit",
-    "typecheck": "tsc --noEmit",
+    "lint": "npm run build --workspace @saas/queue && npm run build --workspace @saas/db && tsc --noEmit",
+    "typecheck": "npm run build --workspace @saas/queue && npm run build --workspace @saas/db && tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
