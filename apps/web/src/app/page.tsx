@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_45%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-12 text-slate-900 sm:px-10 lg:px-16">
@@ -14,6 +16,20 @@ export default function Home() {
             nivel mid: tenant_id + RLS, BullMQ con backoff exponencial y una
             historia clara para entrevistas técnicas.
           </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/login"
+              className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Demo login
+            </Link>
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              Ver dashboard
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">

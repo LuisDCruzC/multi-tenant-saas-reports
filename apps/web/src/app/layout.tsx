@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Multi-tenant SaaS Reports",
-  description: "SaaS de reportes multi-tenant con worker resiliente y CI visible.",
+  description: "SaaS de reportes multi-tenant con auth firmada, worker resiliente y CI visible.",
 };
 
 export default function RootLayout({

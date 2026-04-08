@@ -1,13 +1,16 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma, withUserContext } from "@saas/db";
+import { getSessionFromCookies } from "@/lib/session";
 
 export async function GET() {
-  const requestHeaders = headers();
-  const userId = requestHeaders.get("x-demo-user-id") ?? "demo-user-id";
+  const session = getSessionFromCookies();
 
-  const data = await withUserContext(prisma, userId, async (tx: Prisma.TransactionClient) => {
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const data = await withUserContext(prisma, session.userId, async (tx: Prisma.TransactionClient) => {
     const tenants = await tx.tenant.findMany({
       select: {
         id: true,
@@ -21,7 +24,8 @@ export async function GET() {
     });
 
     return {
-      userId,
+      userId: session.userId,
+      tenantId: session.tenantId,
       tenantCount: tenants.length,
       tenants,
     };
