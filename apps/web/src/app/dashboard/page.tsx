@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSessionFromCookies } from "@/lib/session";
 
-export default function DashboardPage() {
-  const session = getSessionFromCookies();
+export default async function DashboardPage() {
+  const session = await getSessionFromCookies();
 
   if (!session) {
     redirect("/login");

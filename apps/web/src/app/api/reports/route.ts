@@ -9,7 +9,7 @@ function isReportFormat(value: string): value is ReportFormat {
 }
 
 export async function GET() {
-  const session = getSessionFromCookies();
+  const session = await getSessionFromCookies();
 
   if (!session) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -38,7 +38,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const session = getSessionFromCookies();
+  const session = await getSessionFromCookies();
 
   if (!session) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });

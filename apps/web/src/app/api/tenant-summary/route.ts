@@ -4,7 +4,7 @@ import { prisma, withUserContext } from "@saas/db";
 import { getSessionFromCookies } from "@/lib/session";
 
 export async function GET() {
-  const session = getSessionFromCookies();
+  const session = await getSessionFromCookies();
 
   if (!session) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });

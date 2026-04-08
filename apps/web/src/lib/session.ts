@@ -67,8 +67,9 @@ export function parseSession(cookieValue: string | undefined | null): SessionDat
   }
 }
 
-export function getSessionFromCookies() {
-  return parseSession(cookies().get(sessionCookieName)?.value);
+export async function getSessionFromCookies() {
+  const cookieStore = await cookies();
+  return parseSession(cookieStore.get(sessionCookieName)?.value);
 }
 
 export function createSessionCookie(session: SessionData) {

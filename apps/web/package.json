@@ -12,9 +12,9 @@
   "dependencies": {
     "@saas/db": "file:../../packages/db",
     "@saas/queue": "file:../../packages/queue",
+    "next": "15.5.14",
     "react": "^18",
-    "react-dom": "^18",
-    "next": "14.2.5"
+    "react-dom": "^18"
   },
   "devDependencies": {
     "typescript": "^5",
@@ -24,6 +24,6 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "eslint": "^8",
-    "eslint-config-next": "14.2.5"
+    "eslint-config-next": "15.5.14"
   }
 }
