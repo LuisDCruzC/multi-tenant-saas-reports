@@ -5,32 +5,13 @@ import {
   redisConnection,
   type GenerateReportJobData,
 } from "./queue.js";
+import { processReportJob } from "./report-processor.js";
 
 const logger = pino({ name: "reports-worker" });
 
 export const reportsWorker = new Worker<GenerateReportJobData>(
   reportsQueueName,
-  async (job) => {
-    logger.info(
-      {
-        tenantId: job.data.tenantId,
-        reportId: job.data.reportId,
-        attempt: job.attemptsStarted,
-      },
-      "Processing report job",
-    );
-
-    // Placeholder de Hito 0: en Hito 3 se reemplaza por generacion real PDF/Excel.
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    logger.info(
-      {
-        tenantId: job.data.tenantId,
-        reportId: job.data.reportId,
-      },
-      "Report job completed",
-    );
-  },
+  async (job) => processReportJob(job.data, { logger }),
   {
     connection: redisConnection,
     concurrency: 5,

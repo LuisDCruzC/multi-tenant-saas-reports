@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@saas/db": "file:../../packages/db",
+    "@saas/queue": "file:../../packages/queue",
     "react": "^18",
     "react-dom": "^18",
     "next": "14.2.5"
