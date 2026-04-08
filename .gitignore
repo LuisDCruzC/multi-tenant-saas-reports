@@ -1,0 +1,17 @@
+node_modules
+.env
+.env.*
+!.env.example
+
+# Next.js
+apps/web/.next
+apps/web/out
+
+# Build artifacts
+apps/worker/dist
+coverage
+
+# Misc
+.DS_Store
+npm-debug.log*
+prompt.md

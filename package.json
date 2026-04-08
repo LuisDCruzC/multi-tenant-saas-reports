@@ -1,0 +1,21 @@
+{
+  "name": "multi-tenant-saas-reports",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace web",
+    "dev:worker": "npm run dev --workspace @saas/worker",
+    "build": "npm run build --workspace web && npm run build --workspace @saas/worker",
+    "lint": "npm run lint --workspace web && npm run lint --workspace @saas/worker",
+    "test": "npm run test --workspace @saas/worker",
+    "typecheck": "npm run typecheck --workspace web && npm run typecheck --workspace @saas/worker"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
