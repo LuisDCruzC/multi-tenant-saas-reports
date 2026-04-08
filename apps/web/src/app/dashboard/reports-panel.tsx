@@ -16,6 +16,22 @@ type ReportsResponse = {
   reports: ReportItem[];
 };
 
+type PlanLimits = {
+  plan: {
+    id: string;
+    name: string;
+    monthlyReportLimit: number | null;
+  };
+  usage: {
+    current: number;
+    limit: number | null;
+    remaining: number | null;
+    isUnlimited: boolean;
+    monthStart: string;
+    monthEnd: string;
+  };
+};
+
 const statusClassName: Record<ReportItem["status"], string> = {
   QUEUED: "bg-slate-100 text-slate-700 border-slate-200",
   PROCESSING: "bg-amber-100 text-amber-700 border-amber-200",
@@ -31,6 +47,7 @@ export function ReportsPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reports, setReports] = useState<ReportItem[]>([]);
+  const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
 
   const loadReports = useCallback(async () => {
     try {
@@ -51,15 +68,33 @@ export function ReportsPanel() {
     }
   }, []);
 
+  const loadPlanLimits = useCallback(async () => {
+    try {
+      const response = await fetch("/api/tenant/plan-limits", { method: "GET" });
+
+      if (!response.ok) {
+        throw new Error("No se pudieron cargar los limites del plan");
+      }
+
+      const data = (await response.json()) as PlanLimits;
+      setPlanLimits(data);
+    } catch (limitError) {
+      console.error("Error loading plan limits:", limitError);
+      // Don't set error state - this is non-critical
+    }
+  }, []);
+
   useEffect(() => {
     void loadReports();
+    void loadPlanLimits();
 
     const interval = setInterval(() => {
       void loadReports();
+      void loadPlanLimits();
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [loadReports]);
+  }, [loadReports, loadPlanLimits]);
 
   const activeCount = useMemo(
     () => reports.filter((report) => report.status === "PROCESSING" || report.status === "RETRYING").length,
@@ -110,6 +145,16 @@ export function ReportsPanel() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.26em] text-blue-700">Reportes</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">Generacion y seguimiento</h2>
+          {planLimits && (
+            <p className="mt-2 text-xs text-slate-600">
+              Plan <span className="font-semibold">{planLimits.plan.name}</span>
+              {planLimits.usage.isUnlimited ? (
+                " • Reportes ilimitados"
+              ) : (
+                ` • ${planLimits.usage.current}/${planLimits.usage.limit} reportes usados este mes`
+              )}
+            </p>
+          )}
         </div>
         <div className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
           Activos: {activeCount}

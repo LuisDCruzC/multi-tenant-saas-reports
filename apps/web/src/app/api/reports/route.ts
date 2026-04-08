@@ -64,6 +64,40 @@ export async function POST(request: NextRequest) {
   }
 
   const report = await withUserContext(prisma, session.userId, async (tx: Prisma.TransactionClient) => {
+    // Check plan limits (informational only, not enforced yet)
+    const tenant = await tx.tenant.findUniqueOrThrow({
+      where: { id: session.tenantId },
+      select: {
+        plan: {
+          select: { monthlyReportLimit: true },
+        },
+      },
+    });
+
+    if (tenant.plan?.monthlyReportLimit !== null && tenant.plan?.monthlyReportLimit !== undefined) {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const reportCount = await tx.report.count({
+        where: {
+          tenantId: session.tenantId,
+          createdAt: {
+            gte: monthStart,
+            lt: monthEnd,
+          },
+        },
+      });
+
+      const limit = tenant.plan.monthlyReportLimit;
+      if (reportCount >= limit) {
+        // TODO: Enforce this limit when user decides to activate billing gates
+        console.warn(
+          `[PLAN_LIMIT] Tenant ${session.tenantId} would exceed limit (${reportCount}/${limit}), but enforcement disabled`
+        );
+      }
+    }
+
     return tx.report.create({
       data: {
         tenantId: session.tenantId,
