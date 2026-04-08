@@ -9,6 +9,7 @@ apps/web/out
 
 # Build artifacts
 apps/worker/dist
+packages/db/dist
 coverage
 
 # Misc
