@@ -36,6 +36,21 @@ model User {
   updatedAt      DateTime     @updatedAt
 }
 
+model AuthLoginCode {
+  id         String   @id @default(cuid())
+  email      String
+  name       String?
+  tenantSlug String
+  tenantName String
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([email, tenantSlug, createdAt])
+}
+
 model Plan {
   id                   String   @id @default(cuid())
   name                 String   @unique
