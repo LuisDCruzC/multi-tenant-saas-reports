@@ -44,9 +44,11 @@ type ReportMetrics = {
 };
 
 async function buildMetrics(job: GenerateReportJobData): Promise<ReportMetrics> {
-  const rangeEnd = new Date();
-  const rangeStart = new Date(rangeEnd);
-  rangeStart.setDate(rangeStart.getDate() - job.periodDays);
+  const rangeEnd = job.periodEndIso ? new Date(job.periodEndIso) : new Date();
+  const rangeStart = job.periodStartIso ? new Date(job.periodStartIso) : new Date(rangeEnd);
+  if (!job.periodStartIso) {
+    rangeStart.setDate(rangeStart.getDate() - job.periodDays);
+  }
 
   const transactions = await prisma.transaction.findMany({
     where: {
@@ -55,6 +57,7 @@ async function buildMetrics(job: GenerateReportJobData): Promise<ReportMetrics> 
         gte: rangeStart,
         lte: rangeEnd,
       },
+      ...(job.currency ? { currency: job.currency } : {}),
     },
     orderBy: {
       occurredAt: "desc",

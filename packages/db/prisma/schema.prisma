@@ -80,6 +80,9 @@ model Report {
   title           String
   format          ReportFormat @default(PDF)
   periodDays      Int          @default(30)
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  currencyFilter  String?
   status          ReportStatus @default(QUEUED)
   outputUrl       String?
   outputPath      String?

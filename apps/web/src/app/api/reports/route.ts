@@ -12,6 +12,10 @@ function isValidPeriodDays(value: number): value is 7 | 30 | 90 {
   return value === 7 || value === 30 || value === 90;
 }
 
+function isValidCurrency(value: string): boolean {
+  return /^[A-Z]{3}$/.test(value);
+}
+
 export async function GET() {
   const session = await getSessionFromCookies();
 
@@ -32,6 +36,9 @@ export async function GET() {
         title: true,
         format: true,
         periodDays: true,
+        periodStart: true,
+        periodEnd: true,
+        currencyFilter: true,
         status: true,
         outputUrl: true,
         recordsProcessed: true,
@@ -57,12 +64,18 @@ export async function POST(request: NextRequest) {
         title?: string;
         format?: string;
         periodDays?: number;
+        periodStart?: string;
+        periodEnd?: string;
+        currency?: string;
       }
     | null;
 
   const title = body?.title?.trim();
   const format = body?.format ?? "pdf";
   const periodDays = body?.periodDays ?? 30;
+  const currency = body?.currency?.trim().toUpperCase() || undefined;
+  const periodStart = body?.periodStart ? new Date(body.periodStart) : undefined;
+  const periodEnd = body?.periodEnd ? new Date(body.periodEnd) : undefined;
 
   if (!title) {
     return NextResponse.json({ error: "title es requerido" }, { status: 400 });
@@ -74,6 +87,22 @@ export async function POST(request: NextRequest) {
 
   if (!isValidPeriodDays(periodDays)) {
     return NextResponse.json({ error: "periodDays debe ser 7, 30 o 90" }, { status: 400 });
+  }
+
+  if (currency && !isValidCurrency(currency)) {
+    return NextResponse.json({ error: "currency debe ser codigo ISO de 3 letras" }, { status: 400 });
+  }
+
+  if ((periodStart && Number.isNaN(periodStart.getTime())) || (periodEnd && Number.isNaN(periodEnd.getTime()))) {
+    return NextResponse.json({ error: "periodStart y periodEnd deben ser fechas validas" }, { status: 400 });
+  }
+
+  if ((periodStart && !periodEnd) || (!periodStart && periodEnd)) {
+    return NextResponse.json({ error: "periodStart y periodEnd deben enviarse juntos" }, { status: 400 });
+  }
+
+  if (periodStart && periodEnd && periodStart > periodEnd) {
+    return NextResponse.json({ error: "periodStart debe ser menor o igual a periodEnd" }, { status: 400 });
   }
 
   const report = await withUserContext(prisma, session.userId, async (tx: Prisma.TransactionClient) => {
@@ -117,6 +146,9 @@ export async function POST(request: NextRequest) {
         title,
         format: format === "pdf" ? "PDF" : "XLSX",
         periodDays,
+        periodStart,
+        periodEnd,
+        currencyFilter: currency,
         status: "QUEUED",
         createdByUserId: session.userId,
       },
@@ -125,6 +157,9 @@ export async function POST(request: NextRequest) {
         title: true,
         format: true,
         periodDays: true,
+        periodStart: true,
+        periodEnd: true,
+        currencyFilter: true,
         status: true,
         createdAt: true,
       },
@@ -138,6 +173,9 @@ export async function POST(request: NextRequest) {
       reportId: report.id,
       format,
       periodDays,
+      periodStartIso: report.periodStart?.toISOString(),
+      periodEndIso: report.periodEnd?.toISOString(),
+      currency: report.currencyFilter ?? undefined,
     },
     {
       jobId: report.id,

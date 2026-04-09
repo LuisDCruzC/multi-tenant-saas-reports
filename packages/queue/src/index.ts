@@ -22,6 +22,9 @@ export type GenerateReportJobData = {
   reportId: string;
   format: ReportFormat;
   periodDays: 7 | 30 | 90;
+  periodStartIso?: string;
+  periodEndIso?: string;
+  currency?: string;
 };
 
 export const reportsQueue = new Queue<GenerateReportJobData>(reportsQueueName, {

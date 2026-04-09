@@ -7,6 +7,9 @@ type ReportItem = {
   title: string;
   format: "PDF" | "XLSX";
   periodDays: 7 | 30 | 90;
+  periodStart: string | null;
+  periodEnd: string | null;
+  currencyFilter: string | null;
   status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | "RETRYING";
   outputUrl: string | null;
   recordsProcessed: number | null;
@@ -47,6 +50,10 @@ export function ReportsPanel() {
   const [title, setTitle] = useState("");
   const [format, setFormat] = useState<"pdf" | "xlsx">("pdf");
   const [periodDays, setPeriodDays] = useState<7 | 30 | 90>(30);
+  const [useCustomRange, setUseCustomRange] = useState(false);
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [currency, setCurrency] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +132,9 @@ export function ReportsPanel() {
           title,
           format,
           periodDays,
+          periodStart: useCustomRange && periodStart ? periodStart : undefined,
+          periodEnd: useCustomRange && periodEnd ? periodEnd : undefined,
+          currency: currency.trim() ? currency.trim().toUpperCase() : undefined,
         }),
       });
 
@@ -184,16 +194,47 @@ export function ReportsPanel() {
         <select
           value={periodDays}
           onChange={(event) => setPeriodDays(Number(event.target.value) as 7 | 30 | 90)}
+          disabled={useCustomRange}
           className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500"
         >
           <option value={7}>7 dias</option>
           <option value={30}>30 dias</option>
           <option value={90}>90 dias</option>
         </select>
+        <input
+          value={currency}
+          onChange={(event) => setCurrency(event.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 3))}
+          placeholder="Moneda (USD)"
+          className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 md:col-span-2"
+        />
+        <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 md:col-span-4">
+          <input
+            type="checkbox"
+            checked={useCustomRange}
+            onChange={(event) => setUseCustomRange(event.target.checked)}
+          />
+          Usar rango personalizado
+        </label>
+        {useCustomRange ? (
+          <>
+            <input
+              type="date"
+              value={periodStart}
+              onChange={(event) => setPeriodStart(event.target.value)}
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500"
+            />
+            <input
+              type="date"
+              value={periodEnd}
+              onChange={(event) => setPeriodEnd(event.target.value)}
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500"
+            />
+          </>
+        ) : null}
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-2xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-2xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60 md:col-start-4"
         >
           {submitting ? "Encolando..." : "Generar"}
         </button>
@@ -217,7 +258,14 @@ export function ReportsPanel() {
               <div>
                 <p className="text-sm font-semibold text-slate-900">{report.title}</p>
                 <p className="mt-1 text-xs text-slate-500">ID: {report.id}</p>
-                <p className="mt-1 text-xs text-slate-500">Periodo: ultimos {report.periodDays} dias</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {report.periodStart && report.periodEnd
+                    ? `Periodo: ${report.periodStart.slice(0, 10)} a ${report.periodEnd.slice(0, 10)}`
+                    : `Periodo: ultimos ${report.periodDays} dias`}
+                </p>
+                {report.currencyFilter ? (
+                  <p className="mt-1 text-xs text-slate-500">Moneda: {report.currencyFilter}</p>
+                ) : null}
               </div>
 
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
