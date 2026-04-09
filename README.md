@@ -1,6 +1,6 @@
 # Multi-tenant SaaS Reports
 
-![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/LuisDCruzC/multi-tenant-saas-reports/actions/workflows/ci.yml/badge.svg)
 
 Plataforma SaaS completa para generación de reportes con aislamiento multi-tenant, colas resilientes y gestión de planes de facturación. Implementada con Next.js, BullMQ, PostgreSQL y TypeScript.
 
@@ -10,7 +10,7 @@ Plataforma SaaS completa para generación de reportes con aislamiento multi-tena
 - **Colas resilientes**: BullMQ con 5 reintentos exponenciales (2s inicial)
 - **Generación real**: PDF (pdfkit) y XLSX (exceljs)
 - **Notificaciones**: Email automático on completion/failure (nodemailer)
-- **Dashboard interactivo**: Status en tiempo real con polling 4s
+- **Dashboard interactivo**: Status en tiempo real con polling 5s
 - **Planes de facturación**: Infraestructura lista (modo ilimitado por defecto)
 - **TypeScript estricto**: Type-safe en todo el stack
 - **Zero vulnerabilities**: npm audit limpio
@@ -179,7 +179,7 @@ Actualiza status→COMPLETED, guarda outputPath
     ↓
 Envía email a owner
     ↓
-Dashboard polling ve cambio en 4s
+Dashboard polling ve cambio en 5s
     ↓
 Usuario descarga `/api/reports/[reportId]/download`
 ```
@@ -205,7 +205,7 @@ Página `/dashboard` con:
 - **Listado**: tus reportes con status (QUEUED, PROCESSING, COMPLETED, FAILED, RETRYING)
 - **Descarga**: botón solo para COMPLETED
 - **Plan info**: muestra "FREE • Ilimitados"
-- **Polling**: actualiza cada 4 segundos
+- **Polling**: actualiza cada 5 segundos
 - **Logout**: botón para cerrar sesión
 
 ## 🔄 Estados de Reporte

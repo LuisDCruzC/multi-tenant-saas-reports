@@ -15,6 +15,7 @@ const tx = {
   report: {
     create: vi.fn(),
     findMany: vi.fn(),
+    count: vi.fn(),
   },
 };
 
@@ -48,6 +49,7 @@ beforeEach(() => {
   mocks.reportsQueue.add.mockReset();
   tx.tenant.findUniqueOrThrow.mockReset();
   tx.report.create.mockReset();
+  tx.report.count.mockReset();
 });
 
 describe("reports route filters", () => {
@@ -56,6 +58,7 @@ describe("reports route filters", () => {
     tx.tenant.findUniqueOrThrow.mockResolvedValue({
       plan: { monthlyReportLimit: null },
     });
+    tx.report.count.mockResolvedValue(0);
     tx.report.create.mockResolvedValue({
       id: "report-1",
       title: "Ventas Q1",
@@ -135,5 +138,35 @@ describe("reports route filters", () => {
 
     expect(response.status).toBe(400);
     expect(mocks.reportsQueue.add).not.toHaveBeenCalled();
+  });
+
+  it("rechaza crear reporte cuando se alcanza el limite mensual del plan", async () => {
+    mocks.getSessionFromCookies.mockResolvedValue(session);
+    tx.tenant.findUniqueOrThrow.mockResolvedValue({
+      plan: { monthlyReportLimit: 1 },
+    });
+    tx.report.count.mockResolvedValue(1);
+    mocks.withUserContext.mockImplementation(async (_prisma, _userId, callback) => callback(tx));
+
+    const response = await POST(
+      new Request("http://localhost/api/reports", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          title: "Reporte bloqueado",
+          format: "pdf",
+          periodDays: 30,
+        }),
+      }) as never,
+    );
+
+    expect(response.status).toBe(409);
+    expect(tx.report.create).not.toHaveBeenCalled();
+    expect(mocks.reportsQueue.add).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        error: expect.stringContaining("Limite mensual alcanzado"),
+      }),
+    );
   });
 });

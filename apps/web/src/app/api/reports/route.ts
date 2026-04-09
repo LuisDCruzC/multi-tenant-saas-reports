@@ -4,6 +4,15 @@ import { prisma, withUserContext } from "@saas/db";
 import { reportsQueue, type ReportFormat } from "@saas/queue";
 import { getSessionFromCookies } from "@/lib/session";
 
+class PlanLimitExceededError extends Error {
+  constructor(
+    public readonly current: number,
+    public readonly limit: number,
+  ) {
+    super("PLAN_LIMIT_EXCEEDED");
+  }
+}
+
 function isReportFormat(value: string): value is ReportFormat {
   return value === "pdf" || value === "xlsx";
 }
@@ -105,66 +114,76 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "periodStart debe ser menor o igual a periodEnd" }, { status: 400 });
   }
 
-  const report = await withUserContext(prisma, session.userId, async (tx: Prisma.TransactionClient) => {
-    // Check plan limits (informational only, not enforced yet)
-    const tenant = await tx.tenant.findUniqueOrThrow({
-      where: { id: session.tenantId },
-      select: {
-        plan: {
-          select: { monthlyReportLimit: true },
-        },
-      },
-    });
-
-    if (tenant.plan?.monthlyReportLimit !== null && tenant.plan?.monthlyReportLimit !== undefined) {
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-      const reportCount = await tx.report.count({
-        where: {
-          tenantId: session.tenantId,
-          createdAt: {
-            gte: monthStart,
-            lt: monthEnd,
+  let report;
+  try {
+    report = await withUserContext(prisma, session.userId, async (tx: Prisma.TransactionClient) => {
+      const tenant = await tx.tenant.findUniqueOrThrow({
+        where: { id: session.tenantId },
+        select: {
+          plan: {
+            select: { monthlyReportLimit: true },
           },
         },
       });
 
-      const limit = tenant.plan.monthlyReportLimit;
-      if (reportCount >= limit) {
-        // TODO: Enforce this limit when user decides to activate billing gates
-        console.warn(
-          `[PLAN_LIMIT] Tenant ${session.tenantId} would exceed limit (${reportCount}/${limit}), but enforcement disabled`
-        );
+      if (tenant.plan?.monthlyReportLimit !== null && tenant.plan?.monthlyReportLimit !== undefined) {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+        const reportCount = await tx.report.count({
+          where: {
+            tenantId: session.tenantId,
+            createdAt: {
+              gte: monthStart,
+              lt: monthEnd,
+            },
+          },
+        });
+
+        const limit = tenant.plan.monthlyReportLimit;
+        if (reportCount >= limit) {
+          throw new PlanLimitExceededError(reportCount, limit);
+        }
       }
+
+      return tx.report.create({
+        data: {
+          tenantId: session.tenantId,
+          title,
+          format: format === "pdf" ? "PDF" : "XLSX",
+          periodDays,
+          periodStart,
+          periodEnd,
+          currencyFilter: currency,
+          status: "QUEUED",
+          createdByUserId: session.userId,
+        },
+        select: {
+          id: true,
+          title: true,
+          format: true,
+          periodDays: true,
+          periodStart: true,
+          periodEnd: true,
+          currencyFilter: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+    });
+  } catch (error) {
+    if (error instanceof PlanLimitExceededError) {
+      return NextResponse.json(
+        {
+          error: `Limite mensual alcanzado (${error.current}/${error.limit}). Actualiza tu plan para generar mas reportes.`,
+        },
+        { status: 409 },
+      );
     }
 
-    return tx.report.create({
-      data: {
-        tenantId: session.tenantId,
-        title,
-        format: format === "pdf" ? "PDF" : "XLSX",
-        periodDays,
-        periodStart,
-        periodEnd,
-        currencyFilter: currency,
-        status: "QUEUED",
-        createdByUserId: session.userId,
-      },
-      select: {
-        id: true,
-        title: true,
-        format: true,
-        periodDays: true,
-        periodStart: true,
-        periodEnd: true,
-        currencyFilter: true,
-        status: true,
-        createdAt: true,
-      },
-    });
-  });
+    throw error;
+  }
 
   await reportsQueue.add(
     "generate-report",

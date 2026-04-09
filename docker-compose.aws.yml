@@ -13,6 +13,16 @@ services:
       NODE_ENV: production
     ports:
       - "3000:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/auth/me').then((r)=>process.exit(r.status===401||r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   worker:
     build:
@@ -26,4 +36,14 @@ services:
       REDIS_URL: ${REDIS_URL}
       REPORTS_OUTPUT_DIR: ${REPORTS_OUTPUT_DIR:-/app/artifacts}
       NODE_ENV: production
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const Redis=require('ioredis');const redis=new Redis(process.env.REDIS_URL);redis.ping().then((v)=>{redis.disconnect();process.exit(v==='PONG'?0:1)}).catch(()=>process.exit(1));"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
