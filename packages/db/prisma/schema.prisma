@@ -46,6 +46,7 @@ model AuthLoginCode {
   attempts   Int      @default(0)
   expiresAt  DateTime
   usedAt     DateTime?
+  blockedUntil DateTime?
   createdAt  DateTime @default(now())
 
   @@index([email, tenantSlug, createdAt])

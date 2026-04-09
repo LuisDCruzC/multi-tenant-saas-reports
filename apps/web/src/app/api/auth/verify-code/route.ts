@@ -10,6 +10,9 @@ function hashCode(code: string) {
   return createHash("sha256").update(`${secret}:${code}`).digest("hex");
 }
 
+const MAX_ATTEMPTS = 5;
+const BLOCK_MINUTES = 15;
+
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as
     | {
@@ -42,16 +45,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Codigo invalido o expirado" }, { status: 400 });
   }
 
+  if (loginCode.blockedUntil && loginCode.blockedUntil > new Date()) {
+    return NextResponse.json(
+      { error: "Demasiados intentos. Intenta mas tarde." },
+      { status: 429 },
+    );
+  }
+
   const incomingHash = hashCode(code);
   if (incomingHash !== loginCode.codeHash) {
+    const attempts = loginCode.attempts + 1;
+    const isBlocked = attempts >= MAX_ATTEMPTS;
+
     await prisma.authLoginCode.update({
       where: { id: loginCode.id },
       data: {
-        attempts: {
-          increment: 1,
-        },
+        attempts,
+        blockedUntil: isBlocked ? new Date(Date.now() + BLOCK_MINUTES * 60 * 1000) : null,
       },
     });
+
+    if (isBlocked) {
+      return NextResponse.json(
+        { error: "Demasiados intentos. Codigo bloqueado temporalmente." },
+        { status: 429 },
+      );
+    }
 
     return NextResponse.json({ error: "Codigo incorrecto" }, { status: 401 });
   }
