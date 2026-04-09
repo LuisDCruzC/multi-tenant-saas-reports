@@ -14,7 +14,7 @@
     "db:migrate": "npm run migrate:dev --workspace @saas/db",
     "build": "npm run build --workspace @saas/queue && npm run build --workspace @saas/db && npm run build --workspace web && npm run build --workspace @saas/worker",
     "lint": "npm run lint --workspace web && npm run lint --workspace @saas/worker && npm run lint --workspace @saas/db && npm run lint --workspace @saas/queue",
-    "test": "npm run test --workspace @saas/db && npm run test --workspace @saas/queue && npm run test --workspace @saas/worker",
+    "test": "npm run test --workspace @saas/db && npm run test --workspace @saas/queue && npm run test --workspace @saas/worker && npm run test --workspace web",
     "typecheck": "npm run build --workspace @saas/db && npm run typecheck --workspace web && npm run typecheck --workspace @saas/worker && npm run typecheck --workspace @saas/db && npm run typecheck --workspace @saas/queue"
   },
   "keywords": [],
