@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const errorMessages: Record<string, string> = {
@@ -8,7 +9,7 @@ const errorMessages: Record<string, string> = {
   missing_github_code: "GitHub no devolvió un código válido.",
 };
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const errorMessage = error ? errorMessages[error] ?? "No se pudo completar el acceso." : null;
@@ -77,5 +78,13 @@ export default function LoginPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-slate-950" />}>
+      <LoginContent />
+    </Suspense>
   );
 }
