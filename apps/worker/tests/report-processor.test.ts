@@ -24,12 +24,17 @@ describe("processReportJob", () => {
         tenantId: "tenant-1",
         reportId: "report-1",
         format: "pdf",
+        periodDays: 30,
       },
       {
         prismaClient: prismaClient as never,
         generateArtifact: async () => ({
           filePath: "/tmp/reports/report-1.pdf",
           outputUrl: "/api/reports/report-1/download",
+          metrics: {
+            recordsProcessed: 42,
+            totalAmountCents: 125000,
+          },
         }),
         logger: {
           info: vi.fn(),
@@ -43,6 +48,8 @@ describe("processReportJob", () => {
       status: "completed",
       outputUrl: "/api/reports/report-1/download",
       outputPath: "/tmp/reports/report-1.pdf",
+      recordsProcessed: 42,
+      totalAmountCents: 125000,
     });
     expect(updateMany).toHaveBeenNthCalledWith(1, {
       where: {
@@ -65,6 +72,8 @@ describe("processReportJob", () => {
         status: "COMPLETED",
         outputUrl: "/api/reports/report-1/download",
         outputPath: "/tmp/reports/report-1.pdf",
+        recordsProcessed: 42,
+        totalAmountCents: 125000,
       },
     });
     expect(findUnique).toHaveBeenCalledTimes(1);
@@ -87,6 +96,7 @@ describe("processReportJob", () => {
           tenantId: "tenant-1",
           reportId: "report-1",
           format: "xlsx",
+          periodDays: 30,
         },
         {
           prismaClient: prismaClient as never,

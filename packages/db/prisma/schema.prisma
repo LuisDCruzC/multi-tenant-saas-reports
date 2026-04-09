@@ -53,6 +53,7 @@ model Tenant {
   plan        Plan?        @relation(fields: [planId], references: [id], onDelete: SetNull)
   memberships Membership[]
   reports     Report[]
+  transactions Transaction[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -78,9 +79,12 @@ model Report {
   tenantId        String
   title           String
   format          ReportFormat @default(PDF)
+  periodDays      Int          @default(30)
   status          ReportStatus @default(QUEUED)
   outputUrl       String?
   outputPath      String?
+  recordsProcessed Int?
+  totalAmountCents Int?
   createdByUserId String?
   createdByUser   User?        @relation("ReportCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
   tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -89,4 +93,20 @@ model Report {
 
   @@index([tenantId, status])
   @@index([createdByUserId])
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  tenantId     String
+  customerName String
+  category     String
+  amountCents  Int
+  currency     String   @default("USD")
+  occurredAt   DateTime
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, category])
+  @@index([tenantId, customerName])
 }

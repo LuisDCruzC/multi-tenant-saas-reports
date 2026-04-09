@@ -6,8 +6,11 @@ type ReportItem = {
   id: string;
   title: string;
   format: "PDF" | "XLSX";
+  periodDays: 7 | 30 | 90;
   status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | "RETRYING";
   outputUrl: string | null;
+  recordsProcessed: number | null;
+  totalAmountCents: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -43,6 +46,7 @@ const statusClassName: Record<ReportItem["status"], string> = {
 export function ReportsPanel() {
   const [title, setTitle] = useState("");
   const [format, setFormat] = useState<"pdf" | "xlsx">("pdf");
+  const [periodDays, setPeriodDays] = useState<7 | 30 | 90>(30);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +124,7 @@ export function ReportsPanel() {
         body: JSON.stringify({
           title,
           format,
+          periodDays,
         }),
       });
 
@@ -161,7 +166,7 @@ export function ReportsPanel() {
         </div>
       </header>
 
-      <form onSubmit={handleCreateReport} className="grid gap-3 md:grid-cols-[1.4fr_0.8fr_auto]">
+      <form onSubmit={handleCreateReport} className="grid gap-3 md:grid-cols-[1.4fr_0.6fr_0.6fr_auto]">
         <input
           value={title}
           onChange={(event) => setTitle(event.target.value)}
@@ -175,6 +180,15 @@ export function ReportsPanel() {
         >
           <option value="pdf">PDF</option>
           <option value="xlsx">XLSX</option>
+        </select>
+        <select
+          value={periodDays}
+          onChange={(event) => setPeriodDays(Number(event.target.value) as 7 | 30 | 90)}
+          className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500"
+        >
+          <option value={7}>7 dias</option>
+          <option value={30}>30 dias</option>
+          <option value={90}>90 dias</option>
         </select>
         <button
           type="submit"
@@ -198,11 +212,12 @@ export function ReportsPanel() {
           {reports.map((report) => (
             <article
               key={report.id}
-              className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1.5fr_0.6fr_0.8fr_auto] md:items-center"
+              className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1.5fr_0.6fr_0.8fr_1fr_auto] md:items-center"
             >
               <div>
                 <p className="text-sm font-semibold text-slate-900">{report.title}</p>
                 <p className="mt-1 text-xs text-slate-500">ID: {report.id}</p>
+                <p className="mt-1 text-xs text-slate-500">Periodo: ultimos {report.periodDays} dias</p>
               </div>
 
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -214,6 +229,19 @@ export function ReportsPanel() {
               >
                 {report.status}
               </span>
+
+              <div className="text-xs text-slate-600">
+                {report.recordsProcessed !== null ? (
+                  <>
+                    <p>Registros: {report.recordsProcessed}</p>
+                    <p>
+                      Ventas: {new Intl.NumberFormat("es-MX", { style: "currency", currency: "USD" }).format((report.totalAmountCents ?? 0) / 100)}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-slate-400">Sin resumen aun</p>
+                )}
+              </div>
 
               {report.status === "COMPLETED" && report.outputUrl ? (
                 <a

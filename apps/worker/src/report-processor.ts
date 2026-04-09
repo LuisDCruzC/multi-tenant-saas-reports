@@ -8,7 +8,14 @@ export type ReportProcessorDependencies = {
   prismaClient?: PrismaClient;
   generateArtifact?: (
     job: GenerateReportJobData,
-  ) => Promise<{ filePath: string; outputUrl: string }>;
+  ) => Promise<{
+    filePath: string;
+    outputUrl: string;
+    metrics: {
+      recordsProcessed: number;
+      totalAmountCents: number;
+    };
+  }>;
   logger?: {
     info: (payload: unknown, message?: string) => void;
     warn: (payload: unknown, message?: string) => void;
@@ -76,6 +83,8 @@ export async function processReportJob(
         status: "COMPLETED",
         outputUrl: artifact.outputUrl,
         outputPath: artifact.filePath,
+        recordsProcessed: artifact.metrics.recordsProcessed,
+        totalAmountCents: artifact.metrics.totalAmountCents,
       },
     });
 
@@ -113,6 +122,8 @@ export async function processReportJob(
       status: "completed" as const,
       outputUrl: artifact.outputUrl,
       outputPath: artifact.filePath,
+      recordsProcessed: artifact.metrics.recordsProcessed,
+      totalAmountCents: artifact.metrics.totalAmountCents,
     };
   } catch (error) {
     await prismaClient.report.updateMany({

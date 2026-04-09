@@ -8,6 +8,10 @@ function isReportFormat(value: string): value is ReportFormat {
   return value === "pdf" || value === "xlsx";
 }
 
+function isValidPeriodDays(value: number): value is 7 | 30 | 90 {
+  return value === 7 || value === 30 || value === 90;
+}
+
 export async function GET() {
   const session = await getSessionFromCookies();
 
@@ -27,8 +31,11 @@ export async function GET() {
         id: true,
         title: true,
         format: true,
+        periodDays: true,
         status: true,
         outputUrl: true,
+        recordsProcessed: true,
+        totalAmountCents: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -49,11 +56,13 @@ export async function POST(request: NextRequest) {
     | {
         title?: string;
         format?: string;
+        periodDays?: number;
       }
     | null;
 
   const title = body?.title?.trim();
   const format = body?.format ?? "pdf";
+  const periodDays = body?.periodDays ?? 30;
 
   if (!title) {
     return NextResponse.json({ error: "title es requerido" }, { status: 400 });
@@ -61,6 +70,10 @@ export async function POST(request: NextRequest) {
 
   if (!isReportFormat(format)) {
     return NextResponse.json({ error: "format debe ser pdf o xlsx" }, { status: 400 });
+  }
+
+  if (!isValidPeriodDays(periodDays)) {
+    return NextResponse.json({ error: "periodDays debe ser 7, 30 o 90" }, { status: 400 });
   }
 
   const report = await withUserContext(prisma, session.userId, async (tx: Prisma.TransactionClient) => {
@@ -103,6 +116,7 @@ export async function POST(request: NextRequest) {
         tenantId: session.tenantId,
         title,
         format: format === "pdf" ? "PDF" : "XLSX",
+        periodDays,
         status: "QUEUED",
         createdByUserId: session.userId,
       },
@@ -110,6 +124,7 @@ export async function POST(request: NextRequest) {
         id: true,
         title: true,
         format: true,
+        periodDays: true,
         status: true,
         createdAt: true,
       },
@@ -122,6 +137,7 @@ export async function POST(request: NextRequest) {
       tenantId: session.tenantId,
       reportId: report.id,
       format,
+      periodDays,
     },
     {
       jobId: report.id,
