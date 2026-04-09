@@ -4,18 +4,18 @@
 
 Plataforma SaaS completa para generación de reportes con aislamiento multi-tenant, colas resilientes y gestión de planes de facturación. Implementada con Next.js, BullMQ, PostgreSQL y TypeScript.
 
-## 🎯 Características
+## Caracteristicas
 
 - **Multi-tenant con RLS**: Aislamiento de datos usando `tenant_id` + PostgreSQL Row-Level Security
 - **Colas resilientes**: BullMQ con 5 reintentos exponenciales (2s inicial)
 - **Generación real**: PDF (pdfkit) y XLSX (exceljs)
 - **Notificaciones**: Email automático on completion/failure (nodemailer)
 - **Dashboard interactivo**: Status en tiempo real con polling 5s
-- **Planes de facturación**: Infraestructura lista (modo ilimitado por defecto)
+- **Planes de facturacion**: endpoint de limites y bloqueo por plan al crear reportes
 - **TypeScript estricto**: Type-safe en todo el stack
 - **Zero vulnerabilities**: npm audit limpio
 
-## 📦 Stack
+## Stack
 
 | Capa | Tecnología | Versión |
 |------|-----------|---------|
@@ -27,7 +27,7 @@ Plataforma SaaS completa para generación de reportes con aislamiento multi-tena
 | **Testing** | Vitest | 4.1.3 |
 | **Styling** | Tailwind CSS | 3.x |
 
-## 🏗️ Estructura del Monorepo
+## Estructura del Monorepo
 
 ```
 multi-tenant-saas-reports/
@@ -61,7 +61,7 @@ multi-tenant-saas-reports/
 └── docker-compose.yml          # PostgreSQL + Redis
 ```
 
-## 🧭 Diagrama de Arquitectura
+## Diagrama de Arquitectura
 
 ```mermaid
 flowchart LR
@@ -91,9 +91,9 @@ flowchart LR
     REDIS -.queue.-> Q
 ```
 
-## 🚀 Setup Completo
+## Setup Completo
 
-### 1️⃣ Variables de Entorno
+### 1. Variables de Entorno
 
 ```bash
 cp .env.example .env
@@ -112,7 +112,7 @@ SMTP_URL=
 SMTP_FROM=report-bot@example.com
 ```
 
-### 2️⃣ Levantar Infraestructura
+### 2. Levantar Infraestructura
 
 ```bash
 docker compose up -d
@@ -127,7 +127,7 @@ Verificar:
 docker compose ps
 ```
 
-### 3️⃣ Instalar Dependencias
+### 3. Instalar Dependencias
 
 ```bash
 npm install
@@ -135,7 +135,7 @@ npm install
 
 Esto instala todas las dependencias del monorepo.
 
-### 4️⃣ Inicializar Base de Datos
+### 4. Inicializar Base de Datos
 
 #### Generar tipos de Prisma:
 ```bash
@@ -164,7 +164,7 @@ for migration in prisma/migrations/*/migration.sql; do
 done
 ```
 
-### 5️⃣ Levantar Desarrollo
+### 5. Levantar Desarrollo
 
 **Terminal 1 - Frontend + API Routes:**
 ```bash
@@ -185,7 +185,7 @@ npm run test
 npm run build
 ```
 
-## 🔐 Flujo de Autenticación
+## Flujo de Autenticacion
 
 1. Usuario accede `/login`
 2. Click en `Entrar con GitHub`
@@ -197,12 +197,14 @@ npm run build
 
 > **Nota**: el flujo principal es OAuth real con GitHub. El tenant se aprovisiona automáticamente desde la identidad del proveedor.
 
-## 📝 Flujo de Reportes
+## Flujo de Reportes
 
 ```
 Usuario crea reporte
     ↓
 POST /api/reports (titulo, formato: PDF|XLSX)
+    ↓
+Valida limite mensual del plan (si excede responde 409)
     ↓
 Inserta en DB con status=QUEUED
     ↓
@@ -219,7 +221,7 @@ Dashboard polling ve cambio en 5s
 Usuario descarga `/api/reports/[reportId]/download`
 ```
 
-## 📊 Endpoints API
+## Endpoints API
 
 | Método | Path | Descripción |
 |--------|------|---|
@@ -233,7 +235,7 @@ Usuario descarga `/api/reports/[reportId]/download`
 | `GET` | `/api/tenant/plan-limits` | Estado del plan + uso mensual |
 | `GET` | `/api/tenant-summary` | Info del tenant actual |
 
-## 🎨 Dashboard
+## Dashboard
 
 Página `/dashboard` con:
 - **Crear reporte**: form con título + selector formato
@@ -243,7 +245,7 @@ Página `/dashboard` con:
 - **Polling**: actualiza cada 5 segundos
 - **Logout**: botón para cerrar sesión
 
-## 🔄 Estados de Reporte
+## Estados de Reporte
 
 ```
 QUEUED          → Esperando procesamiento
@@ -258,7 +260,7 @@ FAILED          → Agotados reintentos
 
 Reintentos: exponencial backoff (2000ms * 2^attempt)
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Error: "User `saas` was denied access"
 ```bash
@@ -300,7 +302,7 @@ Los artículos de testing usan memoria (no necesita DB vivo). Si falla:
 npm run test -- --reporter=verbose
 ```
 
-## ✅ Validación Pre-Deploy
+## Validacion Pre-Deploy
 
 ```bash
 # Lint
@@ -313,11 +315,34 @@ npm run typecheck
 
 # Tests
 npm run test
-# Output: 7 tests passing (2 db, 2 queue, 3 worker)
+# Output: 18 tests passing (2 db, 2 queue, 3 worker, 11 web)
 
 # Build
 npm run build
-# Output: 11 routes compiled, no errors
+# Output: workspaces compilados sin errores
+
+## Estado Actual
+
+- Flujo OAuth con GitHub activo (`/api/auth/github/start` y callback)
+- Sesion firmada por cookie y aprovisionamiento automatico de tenant
+- Bloqueo por limites de plan aplicado en creacion de reportes
+- Seed reproducible disponible para demo local
+- Healthchecks definidos en `docker-compose.aws.yml` para `web` y `worker`
+- Calidad validada en monorepo: `lint`, `test` y `build` en verde
+
+## AWS Handoff Rapido
+
+1. Configurar secretos requeridos en GitHub Actions:
+    - `APP_GITHUB_CLIENT_ID`
+    - `APP_GITHUB_CLIENT_SECRET`
+    - `APP_AUTH_SESSION_SECRET`
+    - `APP_DATABASE_URL`
+    - `APP_REDIS_URL`
+2. Ejecutar workflow de deploy en `.github/workflows/aws.yml` (manual `workflow_dispatch`).
+3. Validar en ambiente desplegado:
+    - `GET /login` responde 200
+    - `GET /api/auth/github/start` responde 307
+    - worker procesa jobs y genera artifacts
 
 # Security
 npm audit

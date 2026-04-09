@@ -9,12 +9,12 @@ export default function Home() {
             Multi-tenant SaaS Reports
           </p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-            Aislamiento por tenant, jobs resilientes y CI visible en verde.
+            Reportes multi-tenant con OAuth real, colas resilientes y artefactos descargables.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-slate-700 sm:text-lg">
-            Base técnica para un SaaS de reportes con perfil fullstack + devops
-            nivel mid: tenant_id + RLS, BullMQ con backoff exponencial y una
-            historia clara para entrevistas técnicas.
+            Esta demo implementa un flujo completo: login con GitHub, provision de tenant,
+            creacion de reportes con limites por plan, procesamiento asincrono con BullMQ
+            y descarga de PDF o XLSX desde el dashboard.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -34,9 +34,9 @@ export default function Home() {
 
         <div className="grid gap-4 md:grid-cols-3">
           {[
-            ["Tenant isolation", "tenant_id + RLS como línea de defensa principal."],
-            ["BullMQ resiliente", "Retries, backoff exponencial e idempotencia."],
-            ["CI/CD", "GitHub Actions, badge verde y despliegue reproducible."],
+            ["Tenant isolation", "tenant_id + RLS como linea de defensa principal."],
+            ["OAuth + sesion", "GitHub OAuth con cookie firmada en backend."],
+            ["Worker + artifacts", "Generacion de PDF/XLSX y descarga segura por tenant."],
           ].map(([title, description]) => (
             <article
               key={title}
@@ -53,12 +53,12 @@ export default function Home() {
             <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300">
-                  Hito actual
+                  Estado del sistema
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold">Multi-tenant foundation</h2>
+                <h2 className="mt-2 text-2xl font-semibold">Base lista para handoff a AWS</h2>
               </div>
               <span className="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-200">
-                Hito 1 en progreso
+                Validado
               </span>
             </div>
 
@@ -66,38 +66,36 @@ export default function Home() {
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-sm font-medium text-slate-300">Base de datos</p>
                 <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Prisma + PostgreSQL con tablas de usuarios, tenants, membresías y reportes.
+                  Prisma + PostgreSQL con usuarios, tenants, membresias, transacciones y reportes.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm font-medium text-slate-300">Sesión</p>
+                <p className="text-sm font-medium text-slate-300">Autenticacion</p>
                 <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Contexto por usuario propagado con una variable de sesión para RLS.
+                  GitHub OAuth y sesion firmada para propagar el contexto de tenant.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm font-medium text-slate-300">API de ejemplo</p>
+                <p className="text-sm font-medium text-slate-300">Reportes</p>
                 <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Endpoint de tenant summary listo para conectar autenticación real.
+                  Crear, listar y descargar reportes con control de limites por plan.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-sm font-medium text-slate-300">Validación</p>
                 <p className="mt-2 text-sm leading-6 text-slate-400">
-                  El monorepo ya pasa lint, typecheck, test y build desde raíz.
+                  El monorepo pasa lint, test y build; smoke local validado en rutas clave.
                 </p>
               </div>
             </div>
           </section>
 
           <aside className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.3)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Próximo foco
-            </p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">Checklist deploy</p>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-              <li>1. Autenticación y relación usuario-tenant.</li>
-              <li>2. Pruebas de aislamiento entre tenants.</li>
-              <li>3. API de reportes con jobs resilientes.</li>
+              <li>1. Configurar secretos OAuth y sesion en GitHub Actions.</li>
+              <li>2. Ejecutar deploy AWS por workflow manual.</li>
+              <li>3. Verificar login, cola y descarga de artifacts en ambiente.</li>
             </ul>
           </aside>
         </div>

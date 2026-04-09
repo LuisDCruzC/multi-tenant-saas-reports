@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Web App
 
-## Getting Started
+Aplicacion Next.js (App Router) que expone la UI y las API routes del proyecto multi-tenant.
 
-First, run the development server:
+## Responsabilidades
+
+- Flujo de autenticacion con GitHub OAuth
+- Emision y lectura de sesion firmada por cookie
+- Endpoints de reportes (crear, listar, descargar)
+- Endpoint de limites del plan y resumen de tenant
+- Dashboard con polling para estado de procesamiento
+
+## Scripts
+
+Desde la raiz del monorepo:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev:web
+npm run test --workspace web
+npm run build --workspace web
+npm run lint --workspace web
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variables de Entorno Clave
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+La app lee variables desde `apps/web/.env.local` en desarrollo.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```env
+AUTH_SESSION_SECRET=dev-session-secret
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+DATABASE_URL=postgresql://saas:saas@localhost:5432/saas_reports
+REDIS_URL=redis://localhost:6379
+REPORTS_OUTPUT_DIR=./artifacts
+```
 
-## Learn More
+## Endpoints Relevantes
 
-To learn more about Next.js, take a look at the following resources:
+- `GET /api/auth/github/start`
+- `GET /api/auth/github/callback`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `GET /api/reports`
+- `POST /api/reports`
+- `GET /api/reports/[reportId]/download`
+- `GET /api/tenant/plan-limits`
+- `GET /api/tenant-summary`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notas de Implementacion
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- `POST /api/reports` aplica validacion de limites por plan y devuelve `409` cuando se excede.
+- La ruta `/login` usa `Suspense` para soportar `useSearchParams` en build de produccion.
+- La descarga de artifacts valida tenant y ownership antes de responder el archivo.
 
-## Deploy on Vercel
+## Pruebas
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Suite disponible en `apps/web/tests`:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- OAuth start y callback (paths exitosos y de error)
+- Creacion/listado de reportes y control de limites
+- Descarga de artifacts (401, 404 y exito)
