@@ -1,0 +1,46 @@
+name: AWS Infra Stop
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Resolve instance and db IDs
+        id: ids
+        run: |
+          EC2_ID=$(aws cloudformation describe-stack-resources \
+            --stack-name "${{ secrets.AWS_STACK_NAME }}" \
+            --logical-resource-id AppInstance \
+            --query 'StackResources[0].PhysicalResourceId' \
+            --output text)
+
+          DB_ID=$(aws cloudformation describe-stack-resources \
+            --stack-name "${{ secrets.AWS_STACK_NAME }}" \
+            --logical-resource-id PostgresInstance \
+            --query 'StackResources[0].PhysicalResourceId' \
+            --output text)
+
+          echo "ec2_id=$EC2_ID" >> "$GITHUB_OUTPUT"
+          echo "db_id=$DB_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Stop app instance
+        run: |
+          aws ec2 stop-instances --instance-ids "${{ steps.ids.outputs.ec2_id }}"
+
+      - name: Stop postgres instance
+        run: |
+          aws rds stop-db-instance --db-instance-identifier "${{ steps.ids.outputs.db_id }}"
+
+      - name: Note about Redis managed service
+        run: |
+          echo "ElastiCache Redis no soporta stop/start en este modo."
+          echo "Para costo cero total, ejecuta el workflow AWS Infra Delete."

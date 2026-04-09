@@ -1,40 +1,11 @@
-name: AWS Deploy
+name: AWS App Deploy
 
 on:
   workflow_dispatch:
-    inputs:
-      action:
-        description: "Action to run"
-        required: true
-        type: choice
-        options:
-          - deploy
-          - start
-          - stop
-        default: deploy
+    
 
 jobs:
-  lifecycle:
-    if: ${{ inputs.action == 'start' || inputs.action == 'stop' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Start EC2 instance
-        if: ${{ inputs.action == 'start' }}
-        run: aws ec2 start-instances --instance-ids "${{ secrets.AWS_INSTANCE_ID }}"
-
-      - name: Stop EC2 instance
-        if: ${{ inputs.action == 'stop' }}
-        run: aws ec2 stop-instances --instance-ids "${{ secrets.AWS_INSTANCE_ID }}"
-
   deploy:
-    if: ${{ inputs.action == 'deploy' }}
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to EC2 over SSH
@@ -48,4 +19,14 @@ jobs:
             cd /opt/multi-tenant-saas-reports
             git fetch origin main
             git reset --hard origin/main
+            cat > .env <<'EOF'
+            NODE_ENV=production
+            DATABASE_URL=${{ secrets.APP_DATABASE_URL }}
+            REDIS_URL=${{ secrets.APP_REDIS_URL }}
+            AUTH_SESSION_SECRET=${{ secrets.APP_AUTH_SESSION_SECRET }}
+            REPORTS_OUTPUT_DIR=/app/artifacts
+            SMTP_URL=${{ secrets.APP_SMTP_URL }}
+            SMTP_FROM=${{ secrets.APP_SMTP_FROM }}
+            EOF
+            docker compose -f docker-compose.aws.yml run --rm web npm run migrate:deploy --workspace @saas/db
             docker compose -f docker-compose.aws.yml up -d --build

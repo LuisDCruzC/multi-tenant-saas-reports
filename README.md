@@ -284,38 +284,82 @@ npm audit
 # Output: 0 vulnerabilities
 ```
 
-## ☁️ AWS Deploy Low-Cost
+## ☁️ AWS Deploy + Infra Lifecycle
 
-La ruta recomendada para AWS es una sola instancia EC2 con Docker Compose. Eso permite:
+Ahora el repo soporta dos cosas:
 
-- prender el stack cuando lo necesites,
-- apagar la instancia cuando no la uses,
-- pagar solo por el tiempo encendido y el disco EBS,
-- mantener web, worker, PostgreSQL y Redis juntos para simplificar operación.
+- deploy de aplicación en EC2 con Docker Compose,
+- ciclo de vida de infraestructura con CloudFormation para crear, apagar y eliminar recursos.
 
-### Flujo operativo
+También se migró a esquema administrado para datos:
 
-1. Crear una EC2 pequeña con Docker y Docker Compose.
-2. Clonar este repo en `/opt/multi-tenant-saas-reports`.
-3. Crear un `.env` en la instancia con las variables de producción.
-4. Levantar todo con:
+- PostgreSQL en Amazon RDS,
+- Redis en Amazon ElastiCache.
+
+Nota importante de costo: RDS y ElastiCache administrados no siempre son más baratos que correr todo en una sola EC2. El beneficio principal es operación/estabilidad. Para costo cero total cuando no uses el sistema, usa el flujo de delete de infraestructura y luego create cuando vuelvas a necesitarlo.
+
+### Flujos operativos
+
+1. Ejecutar workflow `AWS Infra Create`.
+2. Guardar outputs del stack: `Ec2PublicIp`, `RdsEndpoint`, `RedisEndpoint`.
+3. Configurar en GitHub Secrets:
+    - `EC2_HOST` = `Ec2PublicIp`
+    - `AWS_STACK_NAME`
+    - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
+4. Configurar secretos de aplicación en GitHub (recomendado) para generar `.env` automáticamente en cada deploy:
+
+- `APP_DATABASE_URL`
+- `APP_REDIS_URL`
+- `APP_AUTH_SESSION_SECRET`
+- `APP_SMTP_URL`
+- `APP_SMTP_FROM`
+
+Referencia de formato en `.env.aws.example`.
+
+5. (Opcional) Si no quieres usar secretos de GitHub, puedes crear `.env` manual en EC2 con:
+
+```env
+DATABASE_URL=postgresql://saas:<password>@<RdsEndpoint>:5432/saas_reports
+REDIS_URL=redis://<RedisEndpoint>:6379
+REPORTS_OUTPUT_DIR=/app/artifacts
+AUTH_SESSION_SECRET=<secret>
+SMTP_URL=
+SMTP_FROM=report-bot@example.com
+```
+
+6. Ejecutar workflow `AWS App Deploy` o levantar manualmente:
 
 ```bash
 docker compose -f docker-compose.aws.yml up -d --build
 ```
 
-5. Apagar todo cuando no lo uses con:
+7. Apagar sin borrar todo (ahorro parcial): workflow `AWS Infra Stop`
 
-```bash
-docker compose -f docker-compose.aws.yml down
-```
-
-6. Apagar la instancia EC2 desde AWS Console o con el workflow manual.
+8. Eliminar todo (ahorro máximo): workflow `AWS Infra Delete`
 
 ### Workflows incluidos
 
-- `.github/workflows/ci.yml`: validación en PR y push a main.
-- `.github/workflows/aws.yml`: start, stop y deploy manual sobre EC2.
+- `.github/workflows/ci.yml`: validación en PR y push.
+- `.github/workflows/aws-infra-create.yml`: crea/actualiza toda la infraestructura.
+- `.github/workflows/aws-infra-stop.yml`: apaga EC2 y RDS.
+- `.github/workflows/aws-infra-delete.yml`: elimina stack completo.
+- `.github/workflows/aws.yml`: despliegue de la app sobre EC2 (genera `.env` desde GitHub Secrets y ejecuta migraciones).
+
+### Comandos de apagado manual (alternativa)
+
+Si prefieres CLI local en vez de workflow:
+
+```bash
+aws ec2 stop-instances --instance-ids <ec2-id>
+aws rds stop-db-instance --db-instance-identifier <rds-id>
+```
+
+Para costo cero de toda la infra:
+
+```bash
+aws cloudformation delete-stack --stack-name <stack-name>
+aws cloudformation wait stack-delete-complete --stack-name <stack-name>
+```
 
 ### Observabilidad mínima
 

@@ -1,0 +1,37 @@
+name: AWS Infra Create
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy/Update stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name "${{ secrets.AWS_STACK_NAME }}" \
+            --template-file infra/aws/stack.yml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              KeyPairName="${{ secrets.AWS_KEYPAIR_NAME }}" \
+              AllowedSshCidr="${{ secrets.AWS_ALLOWED_SSH_CIDR }}" \
+              AllowedHttpCidr="${{ secrets.AWS_ALLOWED_HTTP_CIDR }}" \
+              DBPassword="${{ secrets.AWS_DB_PASSWORD }}"
+
+      - name: Show stack outputs
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name "${{ secrets.AWS_STACK_NAME }}" \
+            --query 'Stacks[0].Outputs[*].[OutputKey,OutputValue]' \
+            --output table
