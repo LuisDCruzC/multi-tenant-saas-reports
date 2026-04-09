@@ -24,6 +24,8 @@ jobs:
             DATABASE_URL=${{ secrets.APP_DATABASE_URL }}
             REDIS_URL=${{ secrets.APP_REDIS_URL }}
             AUTH_SESSION_SECRET=${{ secrets.APP_AUTH_SESSION_SECRET }}
+            GITHUB_CLIENT_ID=${{ secrets.APP_GITHUB_CLIENT_ID }}
+            GITHUB_CLIENT_SECRET=${{ secrets.APP_GITHUB_CLIENT_SECRET }}
             REPORTS_OUTPUT_DIR=/app/artifacts
             SMTP_URL=${{ secrets.APP_SMTP_URL }}
             SMTP_FROM=${{ secrets.APP_SMTP_FROM }}

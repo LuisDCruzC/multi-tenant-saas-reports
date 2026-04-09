@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ReportItem = {
   id: string;
@@ -47,6 +47,7 @@ const statusClassName: Record<ReportItem["status"], string> = {
 };
 
 export function ReportsPanel() {
+  const hasLoadedReportsRef = useRef(false);
   const [title, setTitle] = useState("");
   const [format, setFormat] = useState<"pdf" | "xlsx">("pdf");
   const [periodDays, setPeriodDays] = useState<7 | 30 | 90>(30);
@@ -62,18 +63,34 @@ export function ReportsPanel() {
 
   const loadReports = useCallback(async () => {
     try {
-      const response = await fetch("/api/reports", { method: "GET" });
+      const response = await fetch("/api/reports", {
+        method: "GET",
+        credentials: "include",
+      });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Tu sesión expiró. Vuelve a entrar con GitHub.");
+        }
+
         throw new Error("No se pudieron cargar los reportes");
       }
 
       const data = (await response.json()) as ReportsResponse;
-      setReports(data.reports);
+      const nextReports = Array.isArray(data.reports) ? data.reports : [];
+      setReports(nextReports);
+      if (nextReports.length > 0) {
+        hasLoadedReportsRef.current = true;
+      }
       setError(null);
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : "Error inesperado";
-      setError(message);
+      if (message === "Tu sesión expiró. Vuelve a entrar con GitHub." || hasLoadedReportsRef.current) {
+        setError(message);
+      } else {
+        console.error("Error loading reports:", loadError);
+        setError(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -81,7 +98,10 @@ export function ReportsPanel() {
 
   const loadPlanLimits = useCallback(async () => {
     try {
-      const response = await fetch("/api/tenant/plan-limits", { method: "GET" });
+      const response = await fetch("/api/tenant/plan-limits", {
+        method: "GET",
+        credentials: "include",
+      });
 
       if (!response.ok) {
         throw new Error("No se pudieron cargar los limites del plan");
@@ -102,7 +122,7 @@ export function ReportsPanel() {
     const interval = setInterval(() => {
       void loadReports();
       void loadPlanLimits();
-    }, 4000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [loadReports, loadPlanLimits]);

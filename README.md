@@ -20,7 +20,7 @@ Plataforma SaaS completa para generación de reportes con aislamiento multi-tena
 | Capa | Tecnología | Versión |
 |------|-----------|---------|
 | **Frontend** | Next.js (SSR + API Routes) | 15.5.14 |
-| **Auth** | HMAC-SHA256 sessions | - |
+| **Auth** | GitHub OAuth + HMAC-SHA256 sessions | - |
 | **Database** | PostgreSQL + Prisma + RLS | 16 + 5.22 |
 | **Queue** | BullMQ + Redis | 5.10 + 7 |
 | **Worker** | Node.js TypeScript | - |
@@ -75,6 +75,8 @@ DATABASE_URL=postgresql://saas:saas@localhost:5432/saas_reports
 REDIS_URL=redis://localhost:6379
 NODE_ENV=development
 AUTH_SESSION_SECRET=dev-session-secret
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
 REPORTS_OUTPUT_DIR=./artifacts
 SMTP_URL=
 SMTP_FROM=report-bot@example.com
@@ -151,12 +153,14 @@ npm run build
 ## 🔐 Flujo de Autenticación
 
 1. Usuario accede `/login`
-2. Submit → `POST /api/auth/login` (username/password dummy: `dev-user`)
-3. Crea sesión HMAC, devuelve `Set-Cookie: auth`
-4. Dashboard accesible, puede crear/ver reportes
-5. `POST /api/auth/logout` cierra sesión
+2. Click en `Entrar con GitHub`
+3. `GET /api/auth/github/start` redirige a GitHub con state anti-CSRF
+4. GitHub vuelve a `GET /api/auth/github/callback`
+5. La app crea o actualiza el usuario, aprovisiona tenant y firma la sesión
+6. Dashboard accesible, puede crear/ver reportes
+7. `POST /api/auth/logout` cierra sesión
 
-> **Nota**: Auth es básica (sin DB de usuarios). Para producción, integrar OAuth2/Passkeys.
+> **Nota**: el flujo principal es OAuth real con GitHub. El tenant se aprovisiona automáticamente desde la identidad del proveedor.
 
 ## 📝 Flujo de Reportes
 
@@ -185,7 +189,8 @@ Usuario descarga `/api/reports/[reportId]/download`
 | Método | Path | Descripción |
 |--------|------|---|
 | `GET` | `/api/auth/me` | User actual + tenant (requiere session) |
-| `POST` | `/api/auth/login` | Crear sesión |
+| `GET` | `/api/auth/github/start` | Iniciar OAuth con GitHub |
+| `GET` | `/api/auth/github/callback` | Finalizar OAuth y crear sesión |
 | `POST` | `/api/auth/logout` | Eliminar sesión |
 | `GET` | `/api/reports` | Listar reportes del tenant |
 | `POST` | `/api/reports` | Crear + encolar nuevo reporte |
@@ -311,6 +316,8 @@ Nota importante de costo: RDS y ElastiCache administrados no siempre son más ba
 - `APP_DATABASE_URL`
 - `APP_REDIS_URL`
 - `APP_AUTH_SESSION_SECRET`
+- `APP_GITHUB_CLIENT_ID`
+- `APP_GITHUB_CLIENT_SECRET`
 - `APP_SMTP_URL`
 - `APP_SMTP_FROM`
 
@@ -323,6 +330,8 @@ DATABASE_URL=postgresql://saas:<password>@<RdsEndpoint>:5432/saas_reports
 REDIS_URL=redis://<RedisEndpoint>:6379
 REPORTS_OUTPUT_DIR=/app/artifacts
 AUTH_SESSION_SECRET=<secret>
+GITHUB_CLIENT_ID=<github-oauth-client-id>
+GITHUB_CLIENT_SECRET=<github-oauth-client-secret>
 SMTP_URL=
 SMTP_FROM=report-bot@example.com
 ```
