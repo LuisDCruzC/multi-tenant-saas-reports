@@ -119,4 +119,37 @@ describe("github auth callback route", () => {
     expect(mocks.exchangeGithubCode).not.toHaveBeenCalled();
     expect(mocks.provisionUserTenantSession).not.toHaveBeenCalled();
   });
+
+  it("returns the user to login when token exchange fails", async () => {
+    mocks.exchangeGithubCode.mockRejectedValue(new Error("exchange failed"));
+
+    const response = await GET(
+      new Request("http://localhost/api/auth/github/callback?code=oauth-code&state=state-123", {
+        headers: {
+          cookie: "saas_github_oauth_state=state-123",
+        },
+      }) as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost/login?error=github_oauth_failed");
+    expect(mocks.fetchGithubProfile).not.toHaveBeenCalled();
+    expect(mocks.provisionUserTenantSession).not.toHaveBeenCalled();
+  });
+
+  it("returns the user to login when profile fetch fails", async () => {
+    mocks.fetchGithubProfile.mockRejectedValue(new Error("profile failed"));
+
+    const response = await GET(
+      new Request("http://localhost/api/auth/github/callback?code=oauth-code&state=state-123", {
+        headers: {
+          cookie: "saas_github_oauth_state=state-123",
+        },
+      }) as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost/login?error=github_oauth_failed");
+    expect(mocks.provisionUserTenantSession).not.toHaveBeenCalled();
+  });
 });

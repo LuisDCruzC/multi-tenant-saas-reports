@@ -61,6 +61,36 @@ multi-tenant-saas-reports/
 └── docker-compose.yml          # PostgreSQL + Redis
 ```
 
+## 🧭 Diagrama de Arquitectura
+
+```mermaid
+flowchart LR
+    U[Usuario] --> W[Next.js Web App]
+    W --> A[/API Routes/]
+    A --> S[(Sesion firmada)]
+    A --> DB[(PostgreSQL + RLS)]
+    A --> Q[(BullMQ Queue)]
+
+    Q --> WK[Worker Node.js]
+    WK --> DB
+    WK --> FS[(Artifacts PDF/XLSX)]
+    WK --> M[SMTP Notifier]
+
+    W --> D[/api/reports/{id}/download]
+    D --> FS
+
+    subgraph AWS
+        EC2[EC2 App Host]
+        RDS[RDS PostgreSQL]
+        REDIS[ElastiCache Redis]
+    end
+
+    EC2 -.deploy.-> W
+    EC2 -.worker.-> WK
+    RDS -.data.-> DB
+    REDIS -.queue.-> Q
+```
+
 ## 🚀 Setup Completo
 
 ### 1️⃣ Variables de Entorno
@@ -119,6 +149,11 @@ cd packages/db && npx prisma migrate deploy
 
 # O si quieres modo dev con seed:
 cd packages/db && npx prisma migrate dev
+```
+
+#### Cargar seed reproducible (2 tenants demo + transacciones):
+```bash
+npm run seed --workspace @saas/db
 ```
 
 **Si hay error de permisos**, las migraciones se pueden aplicar manualmente:
@@ -354,6 +389,8 @@ docker compose -f docker-compose.aws.yml up -d --build
 - `.github/workflows/aws-infra-delete.yml`: elimina stack completo.
 - `.github/workflows/aws.yml`: despliegue de la app sobre EC2 (genera `.env` desde GitHub Secrets y ejecuta migraciones).
 
+> Nota: los workflows de AWS usan `workflow_dispatch` por diseño. El deploy no es automático en push para evitar costos y cambios accidentales.
+
 ### Comandos de apagado manual (alternativa)
 
 Si prefieres CLI local en vez de workflow:
@@ -380,11 +417,11 @@ aws cloudformation wait stack-delete-complete --stack-name <stack-name>
 
 - [ ] Gestión de usuarios (admin panel)
 - [ ] Upgrades de plan (modal checkout)
-- [ ] Enforcing de límites mensales por plan
+- [ ] Ingesta de transacciones reales (formulario + import CSV)
 - [ ] Webhooks para eventos
 - [ ] E2E tests (Playwright)
-- [ ] Deployment a Azure/AWS
-- [ ] Soporte OAuth2
+- [ ] Observabilidad avanzada (CloudWatch dashboards + alertas)
+- [ ] RBAC por tenant (ADMIN/MEMBER con permisos finos)
 
 ## 📄 Licencia
 
