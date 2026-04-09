@@ -34,6 +34,13 @@ type ReportMetrics = {
   currency: string;
   byCategory: Array<{ category: string; amountCents: number; count: number }>;
   byCustomer: Array<{ customerName: string; amountCents: number; count: number }>;
+  transactions: Array<{
+    occurredAt: Date;
+    customerName: string;
+    category: string;
+    amountCents: number;
+    currency: string;
+  }>;
 };
 
 async function buildMetrics(job: GenerateReportJobData): Promise<ReportMetrics> {
@@ -57,6 +64,7 @@ async function buildMetrics(job: GenerateReportJobData): Promise<ReportMetrics> 
       currency: true,
       category: true,
       customerName: true,
+      occurredAt: true,
     },
   });
 
@@ -95,6 +103,7 @@ async function buildMetrics(job: GenerateReportJobData): Promise<ReportMetrics> 
     currency,
     byCategory,
     byCustomer,
+    transactions,
   };
 }
 
@@ -159,6 +168,7 @@ async function createXlsx(filePath: string, job: GenerateReportJobData, metrics:
   const summary = workbook.addWorksheet("summary");
   const byCategory = workbook.addWorksheet("by_category");
   const byCustomer = workbook.addWorksheet("by_customer");
+  const transactions = workbook.addWorksheet("transactions");
 
   summary.columns = [
     { header: "Field", key: "field", width: 28 },
@@ -199,6 +209,27 @@ async function createXlsx(filePath: string, job: GenerateReportJobData, metrics:
       amount: formatCurrencyFromCents(row.amountCents, metrics.currency),
     });
   }
+
+  transactions.columns = [
+    { header: "Occurred At", key: "occurredAt", width: 28 },
+    { header: "Customer", key: "customer", width: 30 },
+    { header: "Category", key: "category", width: 22 },
+    { header: "Amount", key: "amount", width: 18 },
+    { header: "Currency", key: "currency", width: 12 },
+  ];
+
+  for (const row of metrics.transactions.slice(0, 1000)) {
+    transactions.addRow({
+      occurredAt: row.occurredAt.toISOString(),
+      customer: row.customerName,
+      category: row.category,
+      amount: row.amountCents / 100,
+      currency: row.currency,
+    });
+  }
+
+  const amountColumn = transactions.getColumn("amount");
+  amountColumn.numFmt = '#,##0.00';
 
   await workbook.xlsx.writeFile(filePath);
 }
